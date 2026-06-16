@@ -29,17 +29,37 @@ The skill's own files live at `.claude/skills/fetch-paper-references/`.
 
 ### 1. Read the paper and select essential references
 
-This is a **judgement based on the body, not the bibliography alone.** The
-`## References` list only gives titles/authors/years — that's enough to guess by
-fame or topic, but not to tell whether *this* paper's argument leans on a work.
-So read where citations actually land — the Introduction, "Related work", and
-the Method/Results — to see which references are **load-bearing for
-understanding** (the derivations/experiments depend on them) versus incidental
-name-drops. Then cross-reference those against the `## References` entries to get
-exact titles for searching.
+This is a **judgement based on the whole body, not the bibliography — and not
+the Related-Work section — alone.** The `## References` list only gives
+titles/authors/years (enough to guess by fame or topic); "Related work" tells
+you the lineage but **not** which works a *derivation* or *experiment* actually
+leans on. Those load-bearing citations live in the **Method and Experiments**
+sections. Follow this procedure so you don't miss them:
 
-Be selective: 5–12 references, not the whole list. Skip textbooks and pure
-dataset citations unless central to the method.
+1. **Enumerate every section** so you know what you must cover — don't assume the
+   structure:
+   ```bash
+   grep -nE '^#{1,4} ' "<paper>.md"
+   ```
+2. **Read every citation-bearing section, not just the intro.** At minimum:
+   Introduction, Related work, **Method/Algorithm**, **Experiments/Results**, and
+   skim the Appendix for derivation citations. The classic failure (see Gotchas)
+   is selecting from Related-Work only and missing the foundational works cited
+   in the Method.
+3. **Locate where each candidate is actually used.** Grep the body (everything
+   *before* the `## References` heading) for an author surname to see how many
+   times and in what context it's cited:
+   ```bash
+   grep -nE '\(<Surname>[, ]|<Surname> et al' "<paper>.md"
+   ```
+   A work cited inside an equation/derivation or as an experimental baseline is
+   load-bearing; one name-dropped once in passing usually isn't.
+4. **Cross-reference** the chosen surnames against the `## References` entries to
+   get exact titles + years for searching.
+
+Be selective: 5–12 references (more only if the method genuinely rests on a wide
+base), not the whole list. Skip textbooks, framework/tooling citations (Theano,
+Blocks), and pure dataset citations (MNIST, CIFAR) unless central to the method.
 
 ### 2. For each selected reference, search Google Scholar
 
@@ -115,6 +135,21 @@ node .claude/skills/fetch-paper-references/fetch-pdf.mjs \
 
 ## Gotchas
 
+- **Don't select references from the Related-Work section alone.** It's the
+  tempting shortcut — that section conveniently discusses other papers — but the
+  works a paper's *math* depends on are cited in the **Method**, and its
+  baselines in the **Experiments**. Real example (this very paper, *Nonequilibrium
+  Thermodynamics*): reading only §1.2 surfaced the ML lineage (VAE, GAN, GSN) but
+  missed the physics foundation cited in §2 — Jarzynski 1997 (§2.3), Spinney &
+  Ford 2013 and Jarzynski 2011 (§2.3, §2.4.1), Grosse 2013 (§2.4.1) — which is
+  the actual core of the method. Always run the §1 step-1 procedure over **every**
+  citation-bearing section.
+- **arXiv is the fallback for "essential but paywalled".** Old physics/stats
+  papers (Jarzynski 1997 on APS → 403; Neal 2001 AIS on Springer → HTML stub) are
+  usually also on arXiv (`cond-mat/9707325`, `physics/9803008`). If a *load-
+  bearing* reference is skipped by the publisher host, retry `https://arxiv.org/
+  pdf/<id>` before giving up. "Don't force it" applies to incidental refs, not the
+  ones the method rests on.
 - **Scholar's `[PDF]` label lies.** The right-column link can point at JSTOR /
   Springer / IEEE, which return an ~11 KB HTML login page, not a PDF. The magic-
   byte check in `fetch-pdf.mjs` is the whole reason it exists — trust exit code,
