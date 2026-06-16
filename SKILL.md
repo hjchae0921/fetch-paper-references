@@ -29,10 +29,17 @@ The skill's own files live at `.claude/skills/fetch-paper-references/`.
 
 ### 1. Read the paper and select essential references
 
-Read the `.md`, find the `## References` section, and judge which references are
-**load-bearing for understanding** — the methods/results lean on them, not
-incidental name-drops. Be selective: 5–12 references, not the whole list.
-Skip textbooks and pure dataset citations unless central to the method.
+This is a **judgement based on the body, not the bibliography alone.** The
+`## References` list only gives titles/authors/years — that's enough to guess by
+fame or topic, but not to tell whether *this* paper's argument leans on a work.
+So read where citations actually land — the Introduction, "Related work", and
+the Method/Results — to see which references are **load-bearing for
+understanding** (the derivations/experiments depend on them) versus incidental
+name-drops. Then cross-reference those against the `## References` entries to get
+exact titles for searching.
+
+Be selective: 5–12 references, not the whole list. Skip textbooks and pure
+dataset citations unless central to the method.
 
 ### 2. For each selected reference, search Google Scholar
 
@@ -123,6 +130,14 @@ node .claude/skills/fetch-paper-references/fetch-pdf.mjs \
 - **Old / non-CS references (pre-2000 stats & physics, e.g. Feller 1949,
   Langevin 1908, Besag 1975) usually have no free PDF.** Expect to skip these;
   that's normal, not a failure.
+- **A `[PDF]` link is no guarantee even when the host looks open.** Springer
+  `content/pdf/...` and APS `link.aps.org/pdf/...` returned an HTML stub / `403`
+  in practice — `fetch-pdf.mjs` skipped them correctly. The publisher landing
+  page (`.gs_rt a` link) being open-access (PLOS, JMLR, PMLR) is a better signal.
+- **The downloader sets `process.exitCode` instead of calling
+  `process.exit()`.** On Windows, `process.exit()` while a fetch socket is still
+  closing aborts with a libuv assertion (`UV_HANDLE_CLOSING`, exit 127) — which
+  would clobber the 0/2 exit code the caller trusts. Don't "simplify" it back.
 
 ## Troubleshooting
 
